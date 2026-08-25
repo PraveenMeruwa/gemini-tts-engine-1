@@ -1,0 +1,6 @@
+{
+  "name": "Sleepy Tales Den Voice Generator",
+  "description": "Transforms your scripts into cinematic narration using the Algieba voice — Gentle Giant, American General.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
