@@ -146,44 +146,51 @@ export default function App() {
     ];
     let lastError: any = null;
 
+    const endpoints = [
+      (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://generativelanguage.googleapis.com/v1/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+    ];
+
     for (const model of models) {
-      try {
-        const restUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-        const restBody = {
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: narratorPrompt }],
-            },
-          ],
-          generationConfig: {
-            temperature: 1,
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: "Algieba",
+      for (const getUrl of endpoints) {
+        try {
+          const restUrl = getUrl(model);
+          const restBody = {
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: narratorPrompt }],
+              },
+            ],
+            generationConfig: {
+              temperature: 1,
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: "Algieba",
+                  },
                 },
               },
             },
-          },
-        };
+          };
 
-        const restRes = await fetch(restUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "aistudio-build",
-          },
-          body: JSON.stringify(restBody),
-        });
+          const restRes = await fetch(restUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": "aistudio-build",
+            },
+            body: JSON.stringify(restBody),
+          });
 
-        if (!restRes.ok) {
-          const errData = await restRes.json().catch(() => ({}));
-          const errMsg =
-            errData?.error?.message || `TTS API call failed (${model}) with status ${restRes.status}`;
-          throw new Error(errMsg);
-        }
+          if (!restRes.ok) {
+            const errData = await restRes.json().catch(() => ({}));
+            const errMsg =
+              errData?.error?.message || `TTS API call failed with status ${restRes.status}`;
+            throw new Error(errMsg);
+          }
 
         const data = await restRes.json();
         const candidate = data?.candidates?.[0];
