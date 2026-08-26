@@ -138,7 +138,9 @@ export default function App() {
     stylePromptText: string,
     key: string
   ): Promise<{ audio: string; mimeType: string }> {
-    const narratorPrompt = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
+    const narratorPrompt = stylePromptText
+      ? `${stylePromptText}\n\nStrictly narrate only the text below verbatim. Do not add, continue, or improvise any extra sentences:\n\n${text}`
+      : text;
     const models = [
       "gemini-2.0-flash",
       "gemini-2.0-flash-001",
@@ -158,6 +160,13 @@ export default function App() {
           const restUrl = getUrl(model);
           const isV1 = restUrl.includes("/v1/");
           const restBody = {
+            system_instruction: {
+              parts: [
+                {
+                  text: "You are a dedicated TTS voice engine. Speak ONLY the exact text provided. Never add commentary, story continuations, or extra sentences.",
+                },
+              ],
+            },
             contents: [
               {
                 role: "user",
