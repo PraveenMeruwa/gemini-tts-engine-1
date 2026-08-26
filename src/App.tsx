@@ -142,10 +142,10 @@ export default function App() {
       ? `${stylePromptText}\n\nStrictly narrate only the text below verbatim. Do not add, continue, or improvise any extra sentences:\n\n${text}`
       : text;
     const models = [
+      "gemini-3.1-flash-tts-preview",
+      "gemini-2.5-flash-preview",
       "gemini-2.0-flash",
       "gemini-2.0-flash-001",
-      "gemini-2.5-flash-preview",
-      "gemini-3.1-flash-tts-preview",
     ];
     let lastError: any = null;
 
