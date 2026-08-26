@@ -411,6 +411,8 @@ export default function App() {
     let successCount = 0;
     let failCount = 0;
 
+    let lastDetailedError = "";
+
     for (let i = 0; i < total; i++) {
       // If already generated successfully, skip
       if (onlyFailed && cachedBuffersRef.current[i]) {
@@ -441,13 +443,14 @@ export default function App() {
       } catch (err: any) {
         failCount++;
         const msg = err.message || "Synthesise error";
+        lastDetailedError = msg;
         setChunkLogs((prev) =>
           prev.map((log, idx) =>
             idx === i
               ? {
                   ...log,
                   status: "error",
-                  message: `Chunk ${i + 1} failed: ${msg.length > 80 ? msg.substring(0, 80) + '...' : msg}`,
+                  message: `Chunk ${i + 1} failed: ${msg}`,
                 }
               : log
           )
@@ -464,9 +467,9 @@ export default function App() {
 
     if (validBuffers.length === 0) {
       if (isQuotaError) {
-        setErrorMsg("Gemini API rate limit or quota exceeded. Free tier accounts have per-minute rate limits. Please wait 30–60 seconds and click 'Resume / Retry Failed Chunks', or choose a billing-enabled key in Settings > Secrets.");
+        setErrorMsg(`Gemini API rate limit or quota exceeded (429): ${lastDetailedError || "Rate limit reached. Please wait 60s or ensure billing is active."}`);
       } else {
-        setErrorMsg("All chunks failed. Check your API key and connection, then try again.");
+        setErrorMsg(lastDetailedError ? `Google API Error: ${lastDetailedError}` : "All chunks failed. Check your API key and connection, then try again.");
       }
       setIsGenerating(false);
       return;
