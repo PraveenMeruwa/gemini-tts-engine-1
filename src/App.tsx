@@ -141,14 +141,15 @@ export default function App() {
     const narratorPrompt = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
     const models = [
       "gemini-2.0-flash",
+      "gemini-2.0-flash-001",
       "gemini-2.5-flash-preview",
       "gemini-3.1-flash-tts-preview",
     ];
     let lastError: any = null;
 
     const endpoints = [
-      (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
     ];
 
     for (const model of models) {
@@ -156,6 +157,7 @@ export default function App() {
         try {
           const restUrl = getUrl(model);
           const isVertex = restUrl.includes("aiplatform.googleapis.com");
+          const endpointLabel = isVertex ? `Vertex AI (${model})` : `Generative Language (${model})`;
 
           const restBody = isVertex
             ? {
@@ -210,7 +212,7 @@ export default function App() {
             const errData = await restRes.json().catch(() => ({}));
             const errMsg =
               errData?.error?.message || `TTS API call failed with status ${restRes.status}`;
-            throw new Error(errMsg);
+            throw new Error(`[${endpointLabel}] ${errMsg}`);
           }
 
           const data = await restRes.json();
