@@ -37,7 +37,7 @@ export default function App() {
   // Config state
   const [scriptText, setScriptText] = useState("");
   const [stylePrompt, setStylePrompt] = useState(
-    "Deliver this as a seasoned American narrator with a gravelly baritone voice. Pace is slow and deliberate, like a general recounting a classified mission. Each sentence lands with weight. Pause between paragraphs. Build atmosphere through stillness. This is a bedtime story for adults — hypnotic, cinematic, unhurried."
+    "Deliver this as a seasoned American narrator with a deep, gravelly baritone voice. Pace is slow and deliberate, like a storyteller recounting a grand adventure. Each sentence lands with weight. Pause between paragraphs. Build atmosphere through stillness. This is a cinematic narration — immersive, rich, and unhurried."
   );
   const [chunkSize, setChunkSize] = useState<number>(200);
 
@@ -163,6 +163,13 @@ export default function App() {
                 role: "user",
                 parts: [{ text: narratorPrompt }],
               },
+            ],
+            safety_settings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
             ],
             generation_config: {
               temperature: 1,
