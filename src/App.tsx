@@ -148,16 +148,16 @@ export default function App() {
     let lastError: any = null;
 
     const endpoints = [
+      (m: string) => `https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
-      (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
     ];
 
     for (const model of models) {
       for (const getUrl of endpoints) {
         try {
           const restUrl = getUrl(model);
-          const isVertex = restUrl.includes("aiplatform.googleapis.com");
-          const endpointLabel = isVertex ? `Vertex AI (${model})` : `Generative Language (${model})`;
+          const isV1 = restUrl.includes("/v1/");
+          const endpointLabel = `Vertex AI ${isV1 ? "v1" : "v1beta1"} (${model})`;
 
           const restBody = isVertex
             ? {
