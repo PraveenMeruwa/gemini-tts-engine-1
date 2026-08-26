@@ -142,8 +142,6 @@ export default function App() {
       ? `${stylePromptText}\n\nStrictly narrate only the text below verbatim. Do not add, continue, or improvise any extra sentences:\n\n${text}`
       : text;
     const models = [
-      "gemini-3.1-flash-tts-preview",
-      "gemini-2.5-flash-preview",
       "gemini-2.0-flash",
       "gemini-2.0-flash-001",
     ];
@@ -161,13 +159,6 @@ export default function App() {
           const isV1 = restUrl.includes("/v1/");
           const endpointLabel = `Vertex AI ${isV1 ? "v1" : "v1beta1"} (${model})`;
           const restBody = {
-            system_instruction: {
-              parts: [
-                {
-                  text: "You are a dedicated TTS voice engine. Speak ONLY the exact text provided. Never add commentary, story continuations, or extra sentences.",
-                },
-              ],
-            },
             contents: [
               {
                 role: "user",
