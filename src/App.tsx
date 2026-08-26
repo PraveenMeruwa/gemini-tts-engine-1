@@ -157,47 +157,25 @@ export default function App() {
         try {
           const restUrl = getUrl(model);
           const isV1 = restUrl.includes("/v1/");
-          const endpointLabel = `Vertex AI ${isV1 ? "v1" : "v1beta1"} (${model})`;
-
-          const restBody = isVertex
-            ? {
-                contents: [
-                  {
-                    role: "user",
-                    parts: [{ text: narratorPrompt }],
-                  },
-                ],
-                generation_config: {
-                  temperature: 1,
-                  response_modalities: ["AUDIO"],
-                  speech_config: {
-                    voice_config: {
-                      prebuilt_voice_config: {
-                        voice_name: "Algieba",
-                      },
-                    },
+          const restBody = {
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: narratorPrompt }],
+              },
+            ],
+            generation_config: {
+              temperature: 1,
+              response_modalities: ["AUDIO"],
+              speech_config: {
+                voice_config: {
+                  prebuilt_voice_config: {
+                    voice_name: "Algieba",
                   },
                 },
-              }
-            : {
-                contents: [
-                  {
-                    role: "user",
-                    parts: [{ text: narratorPrompt }],
-                  },
-                ],
-                generationConfig: {
-                  temperature: 1,
-                  responseModalities: ["AUDIO"],
-                  speechConfig: {
-                    voiceConfig: {
-                      prebuiltVoiceConfig: {
-                        voiceName: "Algieba",
-                      },
-                    },
-                  },
-                },
-              };
+              },
+            },
+          };
 
           const restRes = await fetch(restUrl, {
             method: "POST",
