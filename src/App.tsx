@@ -216,19 +216,23 @@ export default function App() {
           }
 
           const data = await restRes.json();
-          const candidate = data?.candidates?.[0];
-          const parts = candidate?.content?.parts || [];
+          const candidate = data?.candidates?.[0] || data?.predictions?.[0];
+          const parts = candidate?.content?.parts || candidate?.parts || [];
 
           let base64Audio: string | undefined;
           let mimeType = "audio/L16;rate=24000";
 
           for (const part of parts) {
-            const inlineData = part.inline_data || part.inlineData;
+            const inlineData = part.inline_data || part.inlineData || part.inline_bytes || part.inlineBytes;
             if (inlineData?.data) {
               base64Audio = inlineData.data;
               if (inlineData.mime_type || inlineData.mimeType) {
                 mimeType = inlineData.mime_type || inlineData.mimeType;
               }
+              break;
+            }
+            if (typeof part.audio === "string") {
+              base64Audio = part.audio;
               break;
             }
           }
@@ -237,15 +241,16 @@ export default function App() {
             return { audio: base64Audio, mimeType };
           }
 
-        const textPart = parts.find((p: any) => p.text)?.text;
-        const finishReason = candidate?.finishReason;
-        throw new Error(
-          textPart
-            ? `Model returned text instead of audio: "${textPart.substring(0, 100)}..."`
-            : finishReason
-            ? `TTS ended without audio (reason: ${finishReason})`
-            : "No audio stream returned"
-        );
+          const textPart = parts.find((p: any) => p.text)?.text;
+          const finishReason = candidate?.finishReason || candidate?.finish_reason;
+          const rawPreview = JSON.stringify(data).substring(0, 250);
+          throw new Error(
+            textPart
+              ? `Model returned text instead of audio: "${textPart.substring(0, 100)}..."`
+              : finishReason
+              ? `TTS ended without audio (reason: ${finishReason})`
+              : `No audio stream returned in response: ${rawPreview}`
+          );
         } catch (e: any) {
           lastError = e;
           if (
