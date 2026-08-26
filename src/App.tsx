@@ -156,25 +156,47 @@ export default function App() {
       for (const getUrl of endpoints) {
         try {
           const restUrl = getUrl(model);
-          const restBody = {
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: narratorPrompt }],
-              },
-            ],
-            generationConfig: {
-              temperature: 1,
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: "Algieba",
+          const isVertex = restUrl.includes("aiplatform.googleapis.com");
+
+          const restBody = isVertex
+            ? {
+                contents: [
+                  {
+                    role: "user",
+                    parts: [{ text: narratorPrompt }],
+                  },
+                ],
+                generation_config: {
+                  temperature: 1,
+                  response_modalities: ["AUDIO"],
+                  speech_config: {
+                    voice_config: {
+                      prebuilt_voice_config: {
+                        voice_name: "Algieba",
+                      },
+                    },
                   },
                 },
-              },
-            },
-          };
+              }
+            : {
+                contents: [
+                  {
+                    role: "user",
+                    parts: [{ text: narratorPrompt }],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 1,
+                  responseModalities: ["AUDIO"],
+                  speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: {
+                        voiceName: "Algieba",
+                      },
+                    },
+                  },
+                },
+              };
 
           const restRes = await fetch(restUrl, {
             method: "POST",
@@ -192,26 +214,27 @@ export default function App() {
             throw new Error(errMsg);
           }
 
-        const data = await restRes.json();
-        const candidate = data?.candidates?.[0];
-        const parts = candidate?.content?.parts || [];
+          const data = await restRes.json();
+          const candidate = data?.candidates?.[0];
+          const parts = candidate?.content?.parts || [];
 
-        let base64Audio: string | undefined;
-        let mimeType = "audio/L16;rate=24000";
+          let base64Audio: string | undefined;
+          let mimeType = "audio/L16;rate=24000";
 
-        for (const part of parts) {
-          if (part.inlineData?.data) {
-            base64Audio = part.inlineData.data;
-            if (part.inlineData.mimeType) {
-              mimeType = part.inlineData.mimeType;
+          for (const part of parts) {
+            const inlineData = part.inline_data || part.inlineData;
+            if (inlineData?.data) {
+              base64Audio = inlineData.data;
+              if (inlineData.mime_type || inlineData.mimeType) {
+                mimeType = inlineData.mime_type || inlineData.mimeType;
+              }
+              break;
             }
-            break;
           }
-        }
 
-        if (base64Audio) {
-          return { audio: base64Audio, mimeType };
-        }
+          if (base64Audio) {
+            return { audio: base64Audio, mimeType };
+          }
 
         const textPart = parts.find((p: any) => p.text)?.text;
         const finishReason = candidate?.finishReason;
