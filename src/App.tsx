@@ -159,6 +159,7 @@ export default function App() {
         try {
           const restUrl = getUrl(model);
           const isV1 = restUrl.includes("/v1/");
+          const endpointLabel = `Vertex AI ${isV1 ? "v1" : "v1beta1"} (${model})`;
           const restBody = {
             system_instruction: {
               parts: [
