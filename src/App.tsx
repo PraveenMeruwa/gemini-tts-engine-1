@@ -222,16 +222,17 @@ export default function App() {
             ? `TTS ended without audio (reason: ${finishReason})`
             : "No audio stream returned"
         );
-      } catch (e: any) {
-        lastError = e;
-        if (
-          e.message?.includes("API_KEY_INVALID") ||
-          e.message?.includes("API key not valid") ||
-          e.message?.includes("quota") ||
-          e.message?.includes("RESOURCE_EXHAUSTED") ||
-          e.message?.includes("429")
-        ) {
-          throw e;
+        } catch (e: any) {
+          lastError = e;
+          if (
+            e.message?.includes("API_KEY_INVALID") ||
+            e.message?.includes("API key not valid") ||
+            e.message?.includes("quota") ||
+            e.message?.includes("RESOURCE_EXHAUSTED") ||
+            e.message?.includes("429")
+          ) {
+            throw e;
+          }
         }
       }
     }
