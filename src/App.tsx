@@ -140,10 +140,8 @@ export default function App() {
   ): Promise<{ audio: string; mimeType: string }> {
     const narratorPrompt = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
     const models = [
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-001",
-      "gemini-2.5-flash-preview",
       "gemini-3.1-flash-tts-preview",
+      "gemini-2.5-flash-tts",
     ];
     let lastError: any = null;
 
