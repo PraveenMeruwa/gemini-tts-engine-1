@@ -141,23 +141,8 @@ export default function App() {
     const narratorPrompt = stylePromptText
       ? `${stylePromptText}\n\nStrictly narrate only the text below verbatim. Do not add, continue, or improvise any extra sentences:\n\n${text}`
       : text;
-    const models = [
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-001",
-    ];
-    let lastError: any = null;
-
-    const endpoints = [
-      (m: string) => `https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
-      (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
-    ];
-
-    for (const model of models) {
-      for (const getUrl of endpoints) {
-        try {
-          const restUrl = getUrl(model);
-          const isV1 = restUrl.includes("/v1/");
-          const endpointLabel = `Vertex AI ${isV1 ? "v1" : "v1beta1"} (${model})`;
+    const restUrl = `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`;
+    const endpointLabel = "Vertex AI (gemini-2.0-flash)";
           const restBody = {
             contents: [
               {
@@ -237,22 +222,6 @@ export default function App() {
               ? `TTS ended without audio (reason: ${finishReason})`
               : `No audio stream returned in response: ${rawPreview}`
           );
-        } catch (e: any) {
-          lastError = e;
-          if (
-            e.message?.includes("API_KEY_INVALID") ||
-            e.message?.includes("API key not valid") ||
-            e.message?.includes("quota") ||
-            e.message?.includes("RESOURCE_EXHAUSTED") ||
-            e.message?.includes("429")
-          ) {
-            throw e;
-          }
-        }
-      }
-    }
-
-    throw lastError || new Error("Failed to synthesize audio with Gemini TTS");
   }
 
   // Single synthesis step with dual fallback (Server -> Direct REST) and retry backoff
