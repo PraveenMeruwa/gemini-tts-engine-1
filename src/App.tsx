@@ -140,16 +140,15 @@ export default function App() {
   ): Promise<{ audio: string; mimeType: string }> {
     const narratorPrompt = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
     const models = [
-      "gemini-3.1-flash-tts-preview",
       "gemini-2.0-flash",
       "gemini-2.5-flash-preview",
+      "gemini-3.1-flash-tts-preview",
     ];
     let lastError: any = null;
 
     const endpoints = [
       (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
-      (m: string) => `https://generativelanguage.googleapis.com/v1/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
     ];
 
     for (const model of models) {
