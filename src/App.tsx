@@ -691,7 +691,56 @@ export default function App() {
           />
         </section>
 
-        {/* Action triggers */}
+        {/* Section: Output area — positioned above Generate button for easy QA */}
+        <AnimatePresence>
+          {audioUrl && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="pt-6 border-t border-border-custom space-y-4"
+              id="output-section"
+            >
+              {/* Native audio player */}
+              <audio
+                src={audioUrl}
+                controls
+                className="w-full rounded-lg bg-surface-2 border border-border-custom shadow-inner focus:outline-none mix-blend-screen"
+                style={{
+                  filter: "invert(0.9) sepia(0.8) saturate(1.8) hue-rotate(330deg)",
+                }}
+              />
+
+              {/* Buttons + metadata in one compact row */}
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={audioUrl}
+                  download={`sleepy-tales-den-voiceover-${Date.now()}.wav`}
+                  className="inline-flex items-center gap-2 py-2.5 px-6 border border-ember text-ember hover:bg-ember hover:text-parchment text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download WAV</span>
+                </a>
+                <button
+                  onClick={resetAll}
+                  className="inline-flex items-center gap-2 py-2.5 px-6 border border-border-custom text-ash hover:border-ash hover:text-parchment text-xs font-semibold rounded-lg transition-all"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>New Script</span>
+                </button>
+                <div className="ml-auto text-right">
+                  <div className="text-xs uppercase tracking-wider text-ember font-semibold">
+                    Your Voiceover is Ready
+                  </div>
+                  <div className="text-[11px] text-ash leading-snug">{outputTitle}</div>
+                  <div className="text-[11px] text-ash leading-snug">{outputMeta}</div>
+                </div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* Action triggers — Generate Voiceover button */}
         <section className="space-y-4 pt-4 border-t border-border-custom">
           <div className="flex flex-col sm:flex-row gap-3">
             <button
@@ -748,113 +797,6 @@ export default function App() {
             )}
           </AnimatePresence>
         </section>
-
-        {/* Section: Generating progress status logs */}
-        <AnimatePresence>
-          {isGenerating && (
-            <motion.section
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="pt-6 border-t border-border-custom space-y-4 overflow-hidden"
-              id="progress-section"
-            >
-              <div className="text-xs uppercase tracking-wider text-ember font-semibold">Generating</div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-serif text-sm text-parchment">{progressTitle}</span>
-                <span className="text-ember font-semibold text-sm">{Math.round(progressPct)}%</span>
-              </div>
-              <div className="h-1 bg-border-custom rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-ember-dim to-ember"
-                  style={{ width: `${progressPct}%` }}
-                  transition={{ ease: "easeInOut" }}
-                />
-              </div>
-
-              {/* Step Logs trace */}
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                {chunkLogs.map((log) => (
-                  <div
-                    key={log.index}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-xs leading-relaxed transition-all duration-300 ${
-                      log.status === "generating"
-                        ? "bg-surface-2 border-ember-dim text-parchment"
-                        : log.status === "done"
-                        ? "bg-surface-2 border-success text-parchment"
-                        : log.status === "error"
-                        ? "bg-surface-2 border-danger text-red-300"
-                        : "bg-surface-2 border-border-custom text-ash"
-                    }`}
-                  >
-                    {log.status === "generating" && (
-                      <Loader2 className="w-4 h-4 animate-spin text-ember" />
-                    )}
-                    {log.status === "done" && (
-                      <CheckCircle2 className="w-4 h-4 text-success" />
-                    )}
-                    {log.status === "error" && (
-                      <AlertTriangle className="w-4 h-4 text-danger" />
-                    )}
-                    <span className="flex-1">
-                      {log.message}
-                    </span>
-                    <span className="text-[10px] text-ash">{log.wordCount} words</span>
-                  </div>
-                ))}
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
-
-        {/* Section: Output area */}
-        <AnimatePresence>
-          {audioUrl && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="pt-6 border-t border-border-custom space-y-4"
-              id="output-section"
-            >
-              <div className="text-xs uppercase tracking-wider text-ember font-semibold">
-                Your Voiceover is Ready
-              </div>
-              <div>
-                <h3 className="font-serif text-lg text-parchment mb-1">{outputTitle}</h3>
-                <p className="text-xs text-ash">{outputMeta}</p>
-              </div>
-
-              {/* Native audio player with sepia filter styling matching original visual density */}
-              <audio
-                src={audioUrl}
-                controls
-                className="w-full rounded-lg bg-surface-2 border border-border-custom shadow-inner focus:outline-none mix-blend-screen"
-                style={{
-                  filter: "invert(0.9) sepia(0.8) saturate(1.8) hue-rotate(330deg)",
-                }}
-              />
-
-              <div className="flex flex-wrap gap-3 pt-2">
-                <a
-                  href={audioUrl}
-                  download={`sleepy-tales-den-voiceover-${Date.now()}.wav`}
-                  className="inline-flex items-center gap-2 py-2.5 px-6 border border-ember text-ember hover:bg-ember hover:text-parchment text-xs font-semibold rounded-lg transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download WAV</span>
-                </a>
-                <button
-                  onClick={resetAll}
-                  className="inline-flex items-center gap-2 py-2.5 px-6 border border-border-custom text-ash hover:border-ash hover:text-parchment text-xs font-semibold rounded-lg transition-all"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>New Script</span>
-                </button>
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
 
       </main>
 
