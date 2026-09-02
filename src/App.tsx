@@ -639,59 +639,7 @@ export default function App() {
           </AnimatePresence>
         </section>
 
-        {/* Section 2: Config items */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border-custom">
-          
-          <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wider text-ash">Voice</label>
-            <select
-              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment opacity-70 cursor-not-allowed outline-none"
-              disabled
-              value="Algieba"
-            >
-              <option value="Algieba">Algieba — Gentle Giant (Tuned)</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wider text-ash">Pacing Control</label>
-            <div className="bg-surface-2 border border-border-custom rounded-lg px-3 py-2 text-xs text-ash leading-relaxed">
-              Controlled via <strong className="text-parchment">Director's Notes</strong> below
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wider text-ash">Chunk Size Limit</label>
-            <select
-              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment outline-none cursor-pointer focus:border-ember transition-colors"
-              value={chunkSize}
-              onChange={(e) => setChunkSize(parseInt(e.target.value))}
-              disabled={isGenerating}
-            >
-              <option value={150}>150 words — ultra reliable</option>
-              <option value={200}>200 words — recommended</option>
-              <option value={250}>250 words — maximum limit</option>
-            </select>
-          </div>
-
-        </section>
-
-        {/* Section 3: Director Notes */}
-        <section className="space-y-3 pt-4 border-t border-border-custom">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
-            <Sparkles className="w-4 h-4" />
-            <span>Director's Notes (Style Prompt)</span>
-          </div>
-          <textarea
-            className="w-full min-h-[90px] bg-surface-2 border border-border-custom rounded-lg p-3 text-xs text-parchment leading-relaxed placeholder-ash/50 outline-none transition-colors focus:border-ember"
-            placeholder="Optional styling instructions - mood, pacing, delivery character..."
-            value={stylePrompt}
-            onChange={(e) => setStylePrompt(e.target.value)}
-            disabled={isGenerating}
-          />
-        </section>
-
-        {/* Section: Output area — positioned above Generate button for easy QA */}
+        {/* Section 2: Output area — right below script for easy QA */}
         <AnimatePresence>
           {audioUrl && (
             <motion.section
@@ -740,7 +688,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Action triggers — Generate Voiceover button */}
+        {/* Section 3: Generate Voiceover button */}
         <section className="space-y-4 pt-4 border-t border-border-custom">
           <div className="flex flex-col sm:flex-row gap-3">
             <button
@@ -796,6 +744,58 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
+        </section>
+
+        {/* Section 4: Config items (Voice / Pacing / Chunk Size) */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border-custom">
+          
+          <div className="space-y-2">
+            <label className="block text-xs uppercase tracking-wider text-ash">Voice</label>
+            <select
+              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment opacity-70 cursor-not-allowed outline-none"
+              disabled
+              value="Algieba"
+            >
+              <option value="Algieba">Algieba — Gentle Giant (Tuned)</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs uppercase tracking-wider text-ash">Pacing Control</label>
+            <div className="bg-surface-2 border border-border-custom rounded-lg px-3 py-2 text-xs text-ash leading-relaxed">
+              Controlled via <strong className="text-parchment">Director's Notes</strong> below
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs uppercase tracking-wider text-ash">Chunk Size Limit</label>
+            <select
+              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment outline-none cursor-pointer focus:border-ember transition-colors"
+              value={chunkSize}
+              onChange={(e) => setChunkSize(parseInt(e.target.value))}
+              disabled={isGenerating}
+            >
+              <option value={150}>150 words — ultra reliable</option>
+              <option value={200}>200 words — recommended</option>
+              <option value={250}>250 words — maximum limit</option>
+            </select>
+          </div>
+
+        </section>
+
+        {/* Section 5: Director Notes */}
+        <section className="space-y-3 pt-4 border-t border-border-custom">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
+            <Sparkles className="w-4 h-4" />
+            <span>Director's Notes (Style Prompt)</span>
+          </div>
+          <textarea
+            className="w-full min-h-[90px] bg-surface-2 border border-border-custom rounded-lg p-3 text-xs text-parchment leading-relaxed placeholder-ash/50 outline-none transition-colors focus:border-ember"
+            placeholder="Optional styling instructions - mood, pacing, delivery character..."
+            value={stylePrompt}
+            onChange={(e) => setStylePrompt(e.target.value)}
+            disabled={isGenerating}
+          />
         </section>
 
       </main>
