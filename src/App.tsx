@@ -26,10 +26,10 @@ const RETRY_BASE_DELAY = 4000; // ms base for exponential backoff
 // Add new engines here as Google releases them. The dropdown auto-populates.
 // Place newest engines first. The first entry with `default: true` is pre-selected.
 const TTS_ENGINES = [
-  { id: "gemini-2.5-flash-tts",         label: "Gemini 2.5 Flash TTS (Stable)",        default: false },
-  { id: "gemini-3.1-flash-tts-preview", label: "Gemini 3.1 Flash TTS (Preview)",       default: false },
-  { id: "gemini-3.8-flash-tts",         label: "Gemini 3.8 Flash TTS",                 default: false },
-  { id: "gemini-3.8-flash-lite-tts",    label: "Gemini 3.8 Flash Lite TTS",            default: true  },
+  { id: "gemini-3.1-flash-tts-preview", label: "Gemini 3.1 Flash TTS (Preview - Tuned)", default: true  },
+  { id: "gemini-2.5-flash-tts",         label: "Gemini 2.5 Flash TTS (Stable)",            default: false },
+  { id: "gemini-3.8-flash-tts",         label: "Gemini 3.8 Flash TTS",                     default: false },
+  { id: "gemini-3.8-flash-lite-tts",    label: "Gemini 3.8 Flash Lite TTS",                default: false },
 ] as const;
 
 export default function App() {
@@ -169,6 +169,7 @@ export default function App() {
         try {
           const restUrl = getUrl(model);
           const isV1 = restUrl.includes("/v1/");
+          const endpointLabel = isV1 ? "Vertex AI v1" : "Vertex AI v1beta1";
           const restBody = {
             contents: [
               {
@@ -187,10 +188,25 @@ export default function App() {
               temperature: 1,
               response_modalities: ["AUDIO"],
               speech_config: {
-                voice_config: {
-                  prebuilt_voice_config: {
-                    voice_name: "Algieba",
-                  },
+                multi_speaker_voice_config: {
+                  speaker_voice_configs: [
+                    {
+                      speaker: "Speaker 1",
+                      voice_config: {
+                        prebuilt_voice_config: {
+                          voice_name: "Algieba",
+                        },
+                      },
+                    },
+                    {
+                      speaker: "Speaker 2",
+                      voice_config: {
+                        prebuilt_voice_config: {
+                          voice_name: "Puck",
+                        },
+                      },
+                    },
+                  ],
                 },
               },
             },
@@ -209,7 +225,7 @@ export default function App() {
             const errData = await restRes.json().catch(() => ({}));
             const errMsg =
               errData?.error?.message || `TTS API call failed with status ${restRes.status}`;
-            throw new Error(`[${endpointLabel}] ${errMsg}`);
+            throw new Error(`[${endpointLabel} (${model})] ${errMsg}`);
           }
 
           const data = await restRes.json();
