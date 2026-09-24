@@ -22,6 +22,16 @@ const SAMPLE_RATE = 24000;
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY = 4000; // ms base for exponential backoff
 
+// ─── TTS Engine Registry ───────────────────────────────────────────────
+// Add new engines here as Google releases them. The dropdown auto-populates.
+// Place newest engines first. The first entry with `default: true` is pre-selected.
+const TTS_ENGINES = [
+  { id: "gemini-2.5-flash-tts",         label: "Gemini 2.5 Flash TTS (Stable)",        default: false },
+  { id: "gemini-3.1-flash-tts-preview", label: "Gemini 3.1 Flash TTS (Preview)",       default: false },
+  { id: "gemini-3.8-flash-tts",         label: "Gemini 3.8 Flash TTS",                 default: false },
+  { id: "gemini-3.8-flash-lite-tts",    label: "Gemini 3.8 Flash Lite TTS",            default: true  },
+] as const;
+
 export default function App() {
   // API Key management
   const [apiKey, setApiKey] = useState<string>(() => {
@@ -40,6 +50,9 @@ export default function App() {
     "Deliver this as a seasoned American narrator with a deep, gravelly baritone voice. Pace is slow and deliberate, like a storyteller recounting a grand adventure. Each sentence lands with weight. Pause between paragraphs. Build atmosphere through stillness. This is a cinematic narration — immersive, rich, and unhurried."
   );
   const [chunkSize, setChunkSize] = useState<number>(200);
+  const [selectedEngine, setSelectedEngine] = useState<string>(
+    TTS_ENGINES.find((e) => e.default)?.id || TTS_ENGINES[0].id
+  );
 
   // Generation flow state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -139,9 +152,10 @@ export default function App() {
     key: string
   ): Promise<{ audio: string; mimeType: string }> {
     const narratorPrompt = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
+    // Selected engine first, then all other registered engines as fallbacks
     const models = [
-      "gemini-3.1-flash-tts-preview",
-      "gemini-2.5-flash-tts",
+      selectedEngine,
+      ...TTS_ENGINES.map((e) => e.id).filter((id) => id !== selectedEngine),
     ];
     let lastError: any = null;
 
@@ -746,8 +760,48 @@ export default function App() {
           </AnimatePresence>
         </section>
 
-        {/* Section 4: Config items (Voice / Pacing / Chunk Size) */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-border-custom">
+        {/* Section 4: Config — Row 1: TTS Engine + Chunk Size */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border-custom">
+          
+          <div className="space-y-2">
+            <label className="block text-xs uppercase tracking-wider text-ash">TTS Engine</label>
+            <select
+              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment outline-none cursor-pointer focus:border-ember transition-colors"
+              value={selectedEngine}
+              onChange={(e) => setSelectedEngine(e.target.value)}
+              disabled={isGenerating}
+            >
+              {TTS_ENGINES.map((engine) => (
+                <option key={engine.id} value={engine.id}>
+                  {engine.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs uppercase tracking-wider text-ash">Chunk Size Limit</label>
+            <select
+              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment outline-none cursor-pointer focus:border-ember transition-colors"
+              value={chunkSize}
+              onChange={(e) => setChunkSize(parseInt(e.target.value))}
+              disabled={isGenerating}
+            >
+              <option value={150}>150 words — ultra reliable</option>
+              <option value={200}>200 words — recommended</option>
+              <option value={250}>250 words — maximum limit</option>
+              <option value={300}>300 words — β beta</option>
+              <option value={350}>350 words — β beta</option>
+              <option value={400}>400 words — β beta</option>
+              <option value={450}>450 words — β beta</option>
+              <option value={500}>500 words — β beta</option>
+            </select>
+          </div>
+
+        </section>
+
+        {/* Section 4b: Config — Row 2: Voice + Pacing Control */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border-custom">
           
           <div className="space-y-2">
             <label className="block text-xs uppercase tracking-wider text-ash">Voice</label>
@@ -765,20 +819,6 @@ export default function App() {
             <div className="bg-surface-2 border border-border-custom rounded-lg px-3 py-2 text-xs text-ash leading-relaxed">
               Controlled via <strong className="text-parchment">Director's Notes</strong> below
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wider text-ash">Chunk Size Limit</label>
-            <select
-              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment outline-none cursor-pointer focus:border-ember transition-colors"
-              value={chunkSize}
-              onChange={(e) => setChunkSize(parseInt(e.target.value))}
-              disabled={isGenerating}
-            >
-              <option value={150}>150 words — ultra reliable</option>
-              <option value={200}>200 words — recommended</option>
-              <option value={250}>250 words — maximum limit</option>
-            </select>
           </div>
 
         </section>
@@ -801,7 +841,7 @@ export default function App() {
       </main>
 
       <footer className="mt-10 mb-16 text-[11px] text-ash text-center opacity-50 font-normal">
-        Sleepy Tales Den · Internal Production Tool · Algieba Custom Tuned · Gemini TTS v3 · gemini-3.1-flash-tts-preview
+        Sleepy Tales Den · Internal Production Tool · Algieba Custom Tuned · {selectedEngine}
       </footer>
 
       {/* API Key Modal */}
