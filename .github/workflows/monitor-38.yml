@@ -19,11 +19,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Check 3.8 models on Vertex AI
         id: check
-        run: node scripts/check_38_status.js
+        run: node scripts/check_38_status.cjs
 
       - name: Create Alert Issue if 3.8 is Live
         if: steps.check.outputs.is_live == 'true'
