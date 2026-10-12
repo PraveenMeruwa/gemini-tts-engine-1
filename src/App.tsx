@@ -157,6 +157,7 @@ export default function App() {
       selectedEngine,
       ...TTS_ENGINES.map((e) => e.id).filter((id) => id !== selectedEngine),
     ];
+    let primaryApiError: string | null = null;
     let lastError: any = null;
 
     const endpoints = [
@@ -174,24 +175,13 @@ export default function App() {
             : restUrl.includes("/v1/")
             ? "Vertex AI v1"
             : "Vertex AI v1beta1";
-          const restBody = {
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: narratorPrompt }],
-              },
-            ],
-            safety_settings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
-            ],
-            generation_config: {
-              temperature: 1,
-              response_modalities: ["AUDIO"],
-              speech_config: {
+
+          // Single-speaker narration (Sleepy Tales Den) uses canonical voice_config.
+          // Multi-speaker dialogue uses multi_speaker_voice_config when speakers are tagged.
+          const hasMultipleSpeakers =
+            narratorPrompt.includes("Speaker 1:") || narratorPrompt.includes("Speaker 2:");
+          const speechConfig = hasMultipleSpeakers
+            ? {
                 multi_speaker_voice_config: {
                   speaker_voice_configs: [
                     {
@@ -212,7 +202,33 @@ export default function App() {
                     },
                   ],
                 },
+              }
+            : {
+                voice_config: {
+                  prebuilt_voice_config: {
+                    voice_name: "Algieba",
+                  },
+                },
+              };
+
+          const restBody = {
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: narratorPrompt }],
               },
+            ],
+            safety_settings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+            ],
+            generation_config: {
+              temperature: 1,
+              response_modalities: ["AUDIO"],
+              speech_config: speechConfig,
             },
           };
 
@@ -229,7 +245,12 @@ export default function App() {
             const errData = await restRes.json().catch(() => ({}));
             const errMsg =
               errData?.error?.message || `TTS API call failed with status ${restRes.status}`;
-            throw new Error(`[${endpointLabel} (${model})] ${errMsg}`);
+            const fullErr = `[${endpointLabel} (${model})] ${errMsg}`;
+            console.warn("[TTS Attempt Error]", fullErr);
+            if (endpointLabel === "Gemini API" && !primaryApiError) {
+              primaryApiError = fullErr;
+            }
+            throw new Error(fullErr);
           }
 
           const data = await restRes.json();
@@ -270,6 +291,11 @@ export default function App() {
           );
         } catch (e: any) {
           lastError = e;
+          // If this key is explicitly blocked on Vertex AI, skip trying remaining Vertex endpoints
+          if (e.message?.includes("aiplatform.googleapis.com") && e.message?.includes("blocked")) {
+            console.log("Key not authorized for Vertex AI; skipping remaining Vertex endpoints.");
+            break;
+          }
           if (
             e.message?.includes("API_KEY_INVALID") ||
             e.message?.includes("API key not valid") ||
@@ -283,7 +309,7 @@ export default function App() {
       }
     }
 
-    throw lastError || new Error("Failed to synthesize audio with Gemini TTS");
+    throw new Error(primaryApiError || lastError?.message || "Failed to synthesize audio with Gemini TTS");
   }
 
   // Single synthesis step with dual fallback (Server -> Direct REST) and retry backoff
