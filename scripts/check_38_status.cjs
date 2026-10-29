@@ -4,16 +4,17 @@ const fs = require('fs');
 const DEFAULT_KEY = Buffer.from('QVEuQWI4Uk42SlVuQlgwNjBmTlVGVHVhWkVDQUVZQktsNHlObFhyT1U5VDFUdnRWNll1TkE=', 'base64').toString('ascii');
 const API_KEY = process.env.VERTEX_API_KEY || DEFAULT_KEY;
 const PROJECT = 'gen-lang-client-0356788890';
-const LOCATION = 'us-central1';
+const LOCATIONS = ['global', 'us-central1'];
 
 const models = ['gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'];
-const apiVersions = ['v1beta1', 'v1'];
+const apiVersions = ['v1', 'v1beta1'];
 
-function checkModel(ver, model) {
+function checkModel(ver, model, location) {
   return new Promise((resolve) => {
-    const path = `/${ver}/projects/${PROJECT}/locations/${LOCATION}/publishers/google/models/${model}:generateContent?key=${encodeURIComponent(API_KEY)}`;
+    const host = location === 'global' ? 'aiplatform.googleapis.com' : `${location}-aiplatform.googleapis.com`;
+    const path = `/${ver}/projects/${PROJECT}/locations/${location}/publishers/google/models/${model}:generateContent?key=${encodeURIComponent(API_KEY)}`;
     const req = https.request({
-      hostname: 'us-central1-aiplatform.googleapis.com',
+      hostname: host,
       path,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -28,10 +29,10 @@ function checkModel(ver, model) {
             live = true;
           }
         } catch (e) {}
-        resolve({ ver, model, status: res.statusCode, live });
+        resolve({ ver, model, location, status: res.statusCode, live });
       });
     });
-    req.on('error', (e) => resolve({ ver, model, status: 'ERROR', live: false }));
+    req.on('error', (e) => resolve({ ver, model, location, status: 'ERROR', live: false }));
     req.write(JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: 'Ping test' }] }],
       generation_config: {
@@ -49,11 +50,13 @@ async function main() {
   console.log(`[${new Date().toISOString()}] Checking Vertex AI 3.8 TTS Status...`);
   const liveModels = [];
   for (const m of models) {
-    for (const v of apiVersions) {
-      const res = await checkModel(v, m);
-      console.log(`  ${v.padEnd(8)} | ${m.padEnd(26)} | HTTP ${res.status} (live: ${res.live})`);
-      if (res.live && !liveModels.includes(m)) {
-        liveModels.push(m);
+    for (const loc of LOCATIONS) {
+      for (const v of apiVersions) {
+        const res = await checkModel(v, m, loc);
+        console.log(`  ${loc.padEnd(10)} | ${v.padEnd(8)} | ${m.padEnd(26)} | HTTP ${res.status} (live: ${res.live})`);
+        if (res.live && !liveModels.includes(m)) {
+          liveModels.push(m);
+        }
       }
     }
   }
