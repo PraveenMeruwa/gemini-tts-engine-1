@@ -26,10 +26,10 @@ const RETRY_BASE_DELAY = 4000; // ms base for exponential backoff
 // Add new engines here as Google releases them. The dropdown auto-populates.
 // Place newest engines first. The first entry with `default: true` is pre-selected.
 const TTS_ENGINES = [
-  { id: "gemini-3.1-flash-tts-preview", label: "Gemini 3.1 Flash TTS (Preview - Tuned)", default: true  },
+  { id: "gemini-3.8-flash-tts",         label: "Gemini 3.8 Flash TTS (Latest - Tuned)",    default: true  },
+  { id: "gemini-3.8-flash-lite-tts",    label: "Gemini 3.8 Flash Lite TTS (Fast)",         default: false },
+  { id: "gemini-3.1-flash-tts-preview", label: "Gemini 3.1 Flash TTS (Preview - Tuned)",  default: false },
   { id: "gemini-2.5-flash-tts",         label: "Gemini 2.5 Flash TTS (Stable)",            default: false },
-  { id: "gemini-3.8-flash-tts",         label: "Gemini 3.8 Flash TTS",                     default: false },
-  { id: "gemini-3.8-flash-lite-tts",    label: "Gemini 3.8 Flash Lite TTS",                default: false },
 ] as const;
 
 export default function App() {
@@ -161,9 +161,11 @@ export default function App() {
     let lastError: any = null;
 
     const endpoints = [
-      (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/global/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/global/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
     ];
 
     for (const model of models) {
@@ -172,9 +174,9 @@ export default function App() {
           const restUrl = getUrl(model);
           const endpointLabel = restUrl.includes("generativelanguage.googleapis.com")
             ? "Gemini API"
-            : restUrl.includes("/v1/")
-            ? "Vertex AI v1"
-            : "Vertex AI v1beta1";
+            : restUrl.includes("locations/global")
+            ? (restUrl.includes("/v1/") ? "Vertex AI Global v1" : "Vertex AI Global v1beta1")
+            : (restUrl.includes("/v1/") ? "Vertex AI v1" : "Vertex AI v1beta1");
 
           // Single-speaker narration (Sleepy Tales Den) uses canonical voice_config.
           // Multi-speaker dialogue uses multi_speaker_voice_config when speakers are tagged.
