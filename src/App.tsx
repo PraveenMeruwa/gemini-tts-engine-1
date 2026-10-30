@@ -215,10 +215,12 @@ export default function App() {
             modelText = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
           }
 
-          // Single-speaker narration (Sleepy Tales Den) uses canonical voice_config.
+          // Single-speaker narration (Sleepy Tales Den) uses custom voice if available, or prebuilt fallback.
           // Multi-speaker dialogue uses multi_speaker_voice_config when speakers are tagged.
           const hasMultipleSpeakers =
             text.includes("Speaker 1:") || text.includes("Speaker 2:");
+
+          const customVoiceId = "voice_a8d2buox40c9";
 
           const speechConfigCamel = hasMultipleSpeakers
             ? {
@@ -241,6 +243,12 @@ export default function App() {
                       },
                     },
                   ],
+                },
+              }
+            : modelIs38
+            ? {
+                voiceConfig: {
+                  voice: customVoiceId,
                 },
               }
             : {
@@ -335,6 +343,52 @@ export default function App() {
             const errData = await restRes.json().catch(() => ({}));
             const errMsg =
               errData?.error?.message || `TTS API call failed with status ${restRes.status}`;
+
+            // If custom voice artifact is not yet mapped in this Vertex project, gracefully fall back to Algieba
+            if (
+              restRes.status === 404 &&
+              (errMsg.includes("Voice artifact") || errMsg.includes("not found")) &&
+              modelIs38 &&
+              !hasMultipleSpeakers
+            ) {
+              console.warn(`[Custom voice ${customVoiceId} pending project mapping, falling back to Algieba]`);
+              const fallbackBody = {
+                ...restBody,
+                generationConfig: {
+                  ...restBody.generationConfig,
+                  speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: {
+                        voiceName: "Algieba",
+                      },
+                    },
+                  },
+                },
+              };
+              const retryRes = await fetch(restUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "User-Agent": "aistudio-build",
+                },
+                body: JSON.stringify(fallbackBody),
+              });
+              if (retryRes.ok) {
+                const retryData = await retryRes.json();
+                const retryCand = retryData?.candidates?.[0] || retryData?.predictions?.[0];
+                const retryParts = retryCand?.content?.parts || retryCand?.parts || [];
+                for (const part of retryParts) {
+                  const inlineData = part.inline_data || part.inlineData || part.inline_bytes || part.inlineBytes;
+                  if (inlineData?.data) {
+                    return {
+                      audio: inlineData.data,
+                      mimeType: inlineData.mime_type || inlineData.mimeType || "audio/L16;rate=24000",
+                    };
+                  }
+                }
+              }
+            }
+
             const fullErr = `[${endpointLabel} (${model})] ${errMsg}`;
             console.warn("[TTS Attempt Error]", fullErr);
             if (endpointLabel === "Gemini API" && !primaryApiError) {
@@ -662,7 +716,7 @@ export default function App() {
       setProgressPct(100);
       setProgressTitle("Cinematic narration generation complete!");
       setAudioUrl(url);
-      setOutputTitle("Sleepy Tales Den — Algieba · Custom Tuned");
+      setOutputTitle("Sleepy Tales Den — Sleepy Joe 3.8 V1 · Custom Tuned");
       setOutputMeta(
         `${mins}m ${secs}s · ${validBuffers.length} of ${total} chunks stitched · 24kHz mono WAV${
           failCount > 0 ? ` · (${failCount} chunk(s) pending/failed)` : ""
@@ -731,7 +785,7 @@ export default function App() {
           Voice Generator
         </h1>
         <p className="text-sm text-ash max-w-md mx-auto leading-relaxed">
-          Transforms your scripts into cinematic narration using the Algieba voice — Gentle Giant, American General.
+          Transforms your scripts into cinematic narration using Sleepy Joe 3.8 V1 — Custom Tuned Bedtime Narrator.
         </p>
       </header>
 
@@ -944,9 +998,9 @@ export default function App() {
             <select
               className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment opacity-70 cursor-not-allowed outline-none"
               disabled
-              value="Algieba"
+              value="Sleepy Joe 3.8 V1"
             >
-              <option value="Algieba">Algieba — Gentle Giant (Tuned)</option>
+              <option value="Sleepy Joe 3.8 V1">Sleepy Joe 3.8 V1 (Custom Tuned)</option>
             </select>
           </div>
 
@@ -987,7 +1041,7 @@ export default function App() {
       </main>
 
       <footer className="mt-10 mb-16 text-[11px] text-ash text-center opacity-50 font-normal">
-        Sleepy Tales Den · Internal Production Tool · Algieba Custom Tuned · {selectedEngine}
+        Sleepy Tales Den · Internal Production Tool · Sleepy Joe 3.8 V1 (Custom Tuned) · {selectedEngine}
       </footer>
 
       {/* API Key Modal */}
