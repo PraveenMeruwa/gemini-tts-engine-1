@@ -91,9 +91,15 @@ export default function App() {
     setNumChunks(chunksCount);
   }, [scriptText, chunkSize]);
 
+  // Helper: detect if the selected engine is a 3.8 model
+  function is38Engine(engine: string): boolean {
+    return engine.includes("3.8");
+  }
+
   // Text chunker algorithm matching the raw JS
   function chunkText(text: string, maxWords: number): string[] {
-    const hardCap = Math.min(maxWords, 250);
+    // 3.8 models support much larger output (16k tokens), so allow bigger chunks
+    const hardCap = is38Engine(selectedEngine) ? Math.min(maxWords, 500) : Math.min(maxWords, 250);
     // Split on sentence boundaries to avoid cutting mid-sentence
     const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) || [text];
     const chunks: string[] = [];
@@ -145,13 +151,33 @@ export default function App() {
     return chunks;
   }
 
+  // Convert bracket-style inline tags to angle-bracket style for 3.8 models
+  // e.g. [whispers] → <whispers>, [long pause] → <long pause>, [sigh] → <sigh>
+  function convertInlineTags(text: string): string {
+    return text.replace(/\[(\s*(?:whispers?|long pause|short pause|pause|sigh|laugh|gasp|cough|breath|chuckle|sobbing|crying)\s*)\]/gi, '<$1>');
+  }
+
   // Direct client-side synthesis for GitHub Pages / static hosting
   async function synthesiseDirect(
     text: string,
     stylePromptText: string,
     key: string
   ): Promise<{ audio: string; mimeType: string }> {
-    const narratorPrompt = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
+    const using38 = is38Engine(selectedEngine);
+
+    // ─── 3.8 vs 3.1 text handling ──────────────────────────────────────
+    // 3.1: Style prompt is concatenated into the text field (model interprets it as direction)
+    // 3.8: Text field is VERBATIM TRANSCRIPT — everything in it is spoken aloud.
+    //       Style direction goes into speech_metadata.style on each part instead.
+    let spokenText: string;
+    if (using38) {
+      // Convert bracket tags to angle-bracket tags for 3.8 inline vocal events
+      spokenText = convertInlineTags(text);
+    } else {
+      // Legacy 3.1/2.5: concatenate style prompt into text
+      spokenText = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
+    }
+
     // Selected engine first, then all other registered engines as fallbacks
     const models = [
       selectedEngine,
@@ -169,6 +195,9 @@ export default function App() {
     ];
 
     for (const model of models) {
+      // Determine if this specific model in the fallback chain is a 3.8 model
+      const modelIs38 = model.includes("3.8");
+
       for (const getUrl of endpoints) {
         try {
           const restUrl = getUrl(model);
@@ -178,10 +207,18 @@ export default function App() {
             ? (restUrl.includes("/v1/") ? "Vertex AI Global v1" : "Vertex AI Global v1beta1")
             : (restUrl.includes("/v1/") ? "Vertex AI v1" : "Vertex AI v1beta1");
 
+          // ─── Build the text content for this specific model ─────────────
+          let modelText: string;
+          if (modelIs38) {
+            modelText = convertInlineTags(text);
+          } else {
+            modelText = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
+          }
+
           // Single-speaker narration (Sleepy Tales Den) uses canonical voice_config.
           // Multi-speaker dialogue uses multi_speaker_voice_config when speakers are tagged.
           const hasMultipleSpeakers =
-            narratorPrompt.includes("Speaker 1:") || narratorPrompt.includes("Speaker 2:");
+            text.includes("Speaker 1:") || text.includes("Speaker 2:");
           const speechConfig = hasMultipleSpeakers
             ? {
                 multi_speaker_voice_config: {
@@ -213,11 +250,23 @@ export default function App() {
                 },
               };
 
+          // ─── Build the parts array ──────────────────────────────────────
+          // For 3.8: add speech_metadata.style with the Director's Notes
+          // For 3.1/2.5: style is already in the text, no speech_metadata needed
+          const contentParts: any[] = modelIs38 && stylePromptText
+            ? [{
+                text: modelText,
+                speech_metadata: {
+                  style: stylePromptText,
+                },
+              }]
+            : [{ text: modelText }];
+
           const restBody = {
             contents: [
               {
                 role: "user",
-                parts: [{ text: narratorPrompt }],
+                parts: contentParts,
               },
             ],
             safety_settings: [
@@ -228,7 +277,8 @@ export default function App() {
               { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
             ],
             generation_config: {
-              temperature: 1,
+              // Lower temperature for 3.8 to reduce hallucinated extra sentences
+              temperature: modelIs38 ? 0.7 : 1,
               response_modalities: ["AUDIO"],
               speech_config: speechConfig,
             },
@@ -837,12 +887,12 @@ export default function App() {
             >
               <option value={150}>150 words — ultra reliable</option>
               <option value={200}>200 words — recommended</option>
-              <option value={250}>250 words — maximum limit</option>
-              <option value={300}>300 words — β beta</option>
-              <option value={350}>350 words — β beta</option>
-              <option value={400}>400 words — β beta</option>
-              <option value={450}>450 words — β beta</option>
-              <option value={500}>500 words — β beta</option>
+              <option value={250}>250 words — balanced</option>
+              <option value={300}>300 words — extended (3.8+)</option>
+              <option value={350}>350 words — extended (3.8+)</option>
+              <option value={400}>400 words — large (3.8+)</option>
+              <option value={450}>450 words — large (3.8+)</option>
+              <option value={500}>500 words — maximum (3.8+)</option>
             </select>
           </div>
 
