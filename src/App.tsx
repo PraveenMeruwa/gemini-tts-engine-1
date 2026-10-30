@@ -33,6 +33,40 @@ const TTS_ENGINES = [
   { id: "gemini-2.5-flash-tts",         label: "Gemini 2.5 Flash TTS (Stable)",            default: false },
 ] as const;
 
+// ─── Pacing Presets Registry ──────────────────────────────────────────
+export type PacingPresetId = "classic" | "hypnotic" | "calm";
+
+interface PacingOption {
+  id: PacingPresetId;
+  label: string;
+  badge: string;
+  stylePrompt: string;
+}
+
+const PACING_OPTIONS: PacingOption[] = [
+  {
+    id: "classic",
+    label: "Classic Storyteller (Slow & Deliberate — Default)",
+    badge: "Classic Storyteller Calibrated",
+    stylePrompt:
+      "Deep gravelly resonant baritone voice, slow and deliberate speaking pace, long dramatic pauses, cinematic bedtime storyteller, weathered and heavy, unhurried, rich and atmospheric. Wise elder narrator with calm, steady delivery and warm chest resonance.",
+  },
+  {
+    id: "hypnotic",
+    label: "Hypnotic Bedtime (Deep Pauses & Lingering)",
+    badge: "Hypnotic Bedtime Calibrated",
+    stylePrompt:
+      "A deep, low, gravelly male voice in his late 60s, with heavy chest resonance and a rich, warm bass. Weathered wise elder storyteller. Extremely slow, hypnotic bedtime cadence with deep, lingering pauses between thoughts. Soft, intimate, and comforting, never rushed. Hypnotic bedtime storyteller delivery.",
+  },
+  {
+    id: "calm",
+    label: "Calm Narrative (Steady & Flowing)",
+    badge: "Calm Narrative Calibrated",
+    stylePrompt:
+      "Rich, resonant male baritone voice with warm chest resonance. Thoughtful, steady, and articulate narrative pace with natural pauses. Calm, measured, and engaging storytelling delivery.",
+  },
+];
+
 export default function App() {
   // API Key management
   const [apiKey, setApiKey] = useState<string>(() => {
@@ -47,9 +81,8 @@ export default function App() {
 
   // Config state
   const [scriptText, setScriptText] = useState("");
-  const [stylePrompt, setStylePrompt] = useState(
-    "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Slow, lazy, deliberate pace with long pauses between thoughts. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction and a touch of natural brightness on the consonants. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Hypnotic bedtime storyteller delivery."
-  );
+  const [pacingPreset, setPacingPreset] = useState<PacingPresetId>("classic");
+  const activePacingOption = PACING_OPTIONS.find((p) => p.id === pacingPreset) || PACING_OPTIONS[0];
   const [chunkSize, setChunkSize] = useState<number>(500);
   const [selectedEngine, setSelectedEngine] = useState<string>(
     TTS_ENGINES.find((e) => e.default)?.id || TTS_ENGINES[0].id
@@ -211,17 +244,23 @@ export default function App() {
           // ─── Build the text content for this specific model ─────────────
           let modelText: string;
           if (modelIs38) {
-            modelText = convertInlineTags(text);
+            if (pacingPreset === "hypnotic") {
+              const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+              modelText = "## Transcript:\n" + parts.map((p) => `[slow] ${convertInlineTags(p.trim())}`).join("\n\n[long pause]\n\n");
+            } else if (pacingPreset === "classic") {
+              const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+              modelText = "## Transcript:\n" + parts.map((p) => `[slow] ${convertInlineTags(p.trim())}`).join("\n\n");
+            } else {
+              modelText = "## Transcript:\n" + convertInlineTags(text);
+            }
           } else {
             modelText = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
           }
 
-          // Single-speaker narration (Sleepy Tales Den) uses custom voice if available, or prebuilt fallback.
+          // Single-speaker narration (Sleepy Tales Den) uses Algieba directly.
           // Multi-speaker dialogue uses multi_speaker_voice_config when speakers are tagged.
           const hasMultipleSpeakers =
             text.includes("Speaker 1:") || text.includes("Speaker 2:");
-
-          const customVoiceId = "voice_a8d2buox40c9";
 
           const speechConfigCamel = hasMultipleSpeakers
             ? {
@@ -244,12 +283,6 @@ export default function App() {
                       },
                     },
                   ],
-                },
-              }
-            : modelIs38
-            ? {
-                voiceConfig: {
-                  voice: customVoiceId,
                 },
               }
             : {
@@ -292,7 +325,7 @@ export default function App() {
               };
 
           // ─── Build request body according to model architecture ─────────
-          // For 3.8: Use camelCase speechMetadata inside parts, temperature 0.5
+          // For 3.8: Use camelCase speechMetadata inside parts, temperature 1 (natural human pacing)
           // For 3.1/2.5: Use legacy snake_case generation_config with style concatenated in text
           const restBody = modelIs38
             ? {
@@ -305,7 +338,7 @@ export default function App() {
                   },
                 ],
                 generationConfig: {
-                  temperature: 0.3,
+                  temperature: 1,
                   responseModalities: ["AUDIO"],
                   speechConfig: speechConfigCamel,
                 },
@@ -657,7 +690,7 @@ export default function App() {
       setProgressTitle(`Rendering narration segment ${i + 1} of ${total}…`);
 
       try {
-        const buffer = await synthesiseChunk(chunks[i], stylePrompt);
+        const buffer = await synthesiseChunk(chunks[i], activePacingOption.stylePrompt);
         cachedBuffersRef.current[i] = buffer;
         successCount++;
         setChunkLogs((prev) =>
@@ -999,17 +1032,26 @@ export default function App() {
             <select
               className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment opacity-70 cursor-not-allowed outline-none"
               disabled
-              value="Sleepy Joe 3.8 V1"
+              value="Sleepy Joe 3.8 V1 (Tuned Algieba)"
             >
-              <option value="Sleepy Joe 3.8 V1">Sleepy Joe 3.8 V1 (Custom Tuned)</option>
+              <option value="Sleepy Joe 3.8 V1 (Tuned Algieba)">Sleepy Joe 3.8 V1 (Tuned Algieba)</option>
             </select>
           </div>
 
           <div className="space-y-2">
             <label className="block text-xs uppercase tracking-wider text-ash">Pacing Control</label>
-            <div className="bg-surface-2 border border-border-custom rounded-lg px-3 py-2 text-xs text-ash leading-relaxed">
-              Controlled via <strong className="text-parchment">Director's Notes</strong> below
-            </div>
+            <select
+              className="w-full bg-surface-2 border border-border-custom rounded-lg px-3 py-2.5 text-xs text-parchment outline-none cursor-pointer focus:border-ember transition-colors"
+              value={pacingPreset}
+              onChange={(e) => setPacingPreset(e.target.value as PacingPresetId)}
+              disabled={isGenerating}
+            >
+              {PACING_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
 
         </section>
@@ -1023,22 +1065,22 @@ export default function App() {
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-ash bg-surface-2 px-2.5 py-1 rounded-md border border-border-custom select-none">
               <Lock className="w-3 h-3 text-ember" />
-              <span>Locked · Sleepy Joe 3.8 V1 Calibrated</span>
+              <span>Locked · {activePacingOption.badge}</span>
             </div>
           </div>
           <textarea
             className="w-full min-h-[95px] bg-surface-2/60 border border-border-custom rounded-lg p-3 text-xs text-parchment/80 leading-relaxed outline-none cursor-not-allowed resize-none select-none opacity-80"
-            value={stylePrompt}
+            value={activePacingOption.stylePrompt}
             readOnly
             disabled
-            title="Director's Notes are permanently locked to preserve the calibrated Sleepy Joe 3.8 V1 vocal timbre and pacing across all script generations."
+            title="Director's Notes are permanently locked and calibrated to the active pacing profile."
           />
         </section>
 
       </main>
 
       <footer className="mt-10 mb-16 text-[11px] text-ash text-center opacity-50 font-normal">
-        Sleepy Tales Den · Internal Production Tool · Sleepy Joe 3.8 V1 (Custom Tuned) · {selectedEngine}
+        Sleepy Tales Den · Internal Production Tool · Sleepy Joe 3.8 V1 (Tuned Algieba) · {selectedEngine}
       </footer>
 
       {/* API Key Modal */}
