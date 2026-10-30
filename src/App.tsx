@@ -45,18 +45,18 @@ interface PacingOption {
 
 const PACING_OPTIONS: PacingOption[] = [
   {
-    id: "classic",
-    label: "Classic Storyteller (Slow & Deliberate - Default)",
-    badge: "Classic Storyteller Calibrated",
-    stylePrompt:
-      "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Slow, lazy, deliberate pace with long pauses between thoughts. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction and a touch of natural brightness on the consonants. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Hypnotic bedtime storyteller delivery.",
-  },
-  {
     id: "hypnotic",
-    label: "Hypnotic (very slow)",
+    label: "Hypnotic (very slow - Default)",
     badge: "Hypnotic (very slow) Calibrated",
     stylePrompt:
       "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and gentle, never frail or shaky. Extremely slow, drowsy, deliberate pace, with long, lingering pauses between thoughts and a soft, trailing settle at the end of every sentence. A slight rasp, calm and steady, never aggressive, with an even, low pitch that never rises or peaks. Smooth and soft-edged with gentle consonants and no sharp brightness. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Whispery-calm, hypnotic, sleep-inducing bedtime delivery.",
+  },
+  {
+    id: "classic",
+    label: "Classic Storyteller (Slow & Deliberate)",
+    badge: "Classic Storyteller Calibrated",
+    stylePrompt:
+      "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Slow, lazy, deliberate pace with long pauses between thoughts. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction and a touch of natural brightness on the consonants. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Hypnotic bedtime storyteller delivery.",
   },
   {
     id: "calm",
@@ -81,7 +81,7 @@ export default function App() {
 
   // Config state
   const [scriptText, setScriptText] = useState("");
-  const [pacingPreset, setPacingPreset] = useState<PacingPresetId>("classic");
+  const [pacingPreset, setPacingPreset] = useState<PacingPresetId>("hypnotic");
   const activePacingOption = PACING_OPTIONS.find((p) => p.id === pacingPreset) || PACING_OPTIONS[0];
   const [chunkSize, setChunkSize] = useState<number>(500);
   const [selectedEngine, setSelectedEngine] = useState<string>(
