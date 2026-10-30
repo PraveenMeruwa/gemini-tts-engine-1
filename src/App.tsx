@@ -47,7 +47,7 @@ export default function App() {
   // Config state
   const [scriptText, setScriptText] = useState("");
   const [stylePrompt, setStylePrompt] = useState(
-    "Deep gravelly resonant baritone voice, extremely slow and deliberate speaking pace, long dramatic pauses, cinematic bedtime storyteller, weathered and heavy, unhurried, rich and atmospheric."
+    "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Slow, lazy, deliberate pace with long pauses between thoughts. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction and a touch of natural brightness on the consonants. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Hypnotic bedtime storyteller delivery."
   );
   const [chunkSize, setChunkSize] = useState<number>(200);
   const [selectedEngine, setSelectedEngine] = useState<string>(
@@ -1015,19 +1015,9 @@ export default function App() {
 
         {/* Section 5: Director Notes */}
         <section className="space-y-3 pt-4 border-t border-border-custom">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
-              <Sparkles className="w-4 h-4" />
-              <span>Director's Notes (Style Prompt)</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setStylePrompt("Deep gravelly resonant baritone voice, extremely slow and deliberate speaking pace, long dramatic pauses, cinematic bedtime storyteller, weathered and heavy, unhurried, rich and atmospheric.")}
-              className="text-[11px] text-ash hover:text-ember underline cursor-pointer transition-colors"
-              title="Reset to the calibrated Algieba cinematic baritone style"
-            >
-              Reset to Tuned Baritone
-            </button>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
+            <Sparkles className="w-4 h-4" />
+            <span>Director's Notes (Style Prompt)</span>
           </div>
           <textarea
             className="w-full min-h-[90px] bg-surface-2 border border-border-custom rounded-lg p-3 text-xs text-parchment leading-relaxed placeholder-ash/50 outline-none transition-colors focus:border-ember"
