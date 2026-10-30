@@ -47,7 +47,7 @@ export default function App() {
   // Config state
   const [scriptText, setScriptText] = useState("");
   const [stylePrompt, setStylePrompt] = useState(
-    "Deliver this as a seasoned American narrator with a deep, gravelly baritone voice. Pace is slow and deliberate, like a storyteller recounting a grand adventure. Each sentence lands with weight. Pause between paragraphs. Build atmosphere through stillness. This is a cinematic narration — immersive, rich, and unhurried."
+    "Deep gravelly resonant baritone voice, extremely slow and deliberate speaking pace, long dramatic pauses, cinematic bedtime storyteller, weathered and heavy, unhurried, rich and atmospheric."
   );
   const [chunkSize, setChunkSize] = useState<number>(200);
   const [selectedEngine, setSelectedEngine] = useState<string>(
@@ -154,7 +154,7 @@ export default function App() {
   // Convert bracket-style inline tags to angle-bracket style for 3.8 models
   // e.g. [whispers] → <whispers>, [long pause] → <long pause>, [sigh] → <sigh>
   function convertInlineTags(text: string): string {
-    return text.replace(/\[(\s*(?:whispers?|long pause|short pause|pause|sigh|laugh|gasp|cough|breath|chuckle|sobbing|crying)\s*)\]/gi, '<$1>');
+    return text.replace(/\[(\s*(?:whispers?|long pause|short pause|pause|sigh|laugh|gasp|cough|breath|chuckle|sobbing|crying|slow|speaking slowly)\s*)\]/gi, '<$1>');
   }
 
   // Direct client-side synthesis for GitHub Pages / static hosting
@@ -187,10 +187,10 @@ export default function App() {
     let lastError: any = null;
 
     const endpoints = [
-      (m: string) => `https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/global/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/global/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
-      (m: string) => `https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/global/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
+      (m: string) => `https://us-central1-aiplatform.googleapis.com/v1/projects/gen-lang-client-0356788890/locations/us-central1/publishers/google/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
       (m: string) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,
     ];
 
@@ -204,8 +204,8 @@ export default function App() {
           const endpointLabel = restUrl.includes("generativelanguage.googleapis.com")
             ? "Gemini API"
             : restUrl.includes("locations/global")
-            ? (restUrl.includes("/v1/") ? "Vertex AI Global v1" : "Vertex AI Global v1beta1")
-            : (restUrl.includes("/v1/") ? "Vertex AI v1" : "Vertex AI v1beta1");
+            ? (restUrl.includes("/v1beta1/") ? "Vertex AI Global v1beta1" : "Vertex AI Global v1")
+            : (restUrl.includes("/v1beta1/") ? "Vertex AI v1beta1" : "Vertex AI v1");
 
           // ─── Build the text content for this specific model ─────────────
           let modelText: string;
@@ -219,7 +219,39 @@ export default function App() {
           // Multi-speaker dialogue uses multi_speaker_voice_config when speakers are tagged.
           const hasMultipleSpeakers =
             text.includes("Speaker 1:") || text.includes("Speaker 2:");
-          const speechConfig = hasMultipleSpeakers
+
+          const speechConfigCamel = hasMultipleSpeakers
+            ? {
+                multiSpeakerVoiceConfig: {
+                  speakerVoiceConfigs: [
+                    {
+                      speaker: "Speaker 1",
+                      voiceConfig: {
+                        prebuiltVoiceConfig: {
+                          voiceName: "Algieba",
+                        },
+                      },
+                    },
+                    {
+                      speaker: "Speaker 2",
+                      voiceConfig: {
+                        prebuiltVoiceConfig: {
+                          voiceName: "Puck",
+                        },
+                      },
+                    },
+                  ],
+                },
+              }
+            : {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: "Algieba",
+                  },
+                },
+              };
+
+          const speechConfigSnake = hasMultipleSpeakers
             ? {
                 multi_speaker_voice_config: {
                   speaker_voice_configs: [
@@ -250,39 +282,45 @@ export default function App() {
                 },
               };
 
-          // ─── Build the parts array ──────────────────────────────────────
-          // For 3.8: add speech_metadata.style with the Director's Notes
-          // For 3.1/2.5: style is already in the text, no speech_metadata needed
-          const contentParts: any[] = modelIs38 && stylePromptText
-            ? [{
-                text: modelText,
-                speech_metadata: {
-                  style: stylePromptText,
+          // ─── Build request body according to model architecture ─────────
+          // For 3.8: Use camelCase speechMetadata inside parts, temperature 0.5
+          // For 3.1/2.5: Use legacy snake_case generation_config with style concatenated in text
+          const restBody = modelIs38
+            ? {
+                contents: [
+                  {
+                    role: "user",
+                    parts: stylePromptText
+                      ? [{ text: modelText, speechMetadata: { style: stylePromptText } }]
+                      : [{ text: modelText }],
+                  },
+                ],
+                generationConfig: {
+                  temperature: 0.5,
+                  responseModalities: ["AUDIO"],
+                  speechConfig: speechConfigCamel,
                 },
-              }]
-            : [{ text: modelText }];
-
-          const restBody = {
-            contents: [
-              {
-                role: "user",
-                parts: contentParts,
-              },
-            ],
-            safety_settings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
-            ],
-            generation_config: {
-              // Lower temperature for 3.8 to reduce hallucinated extra sentences
-              temperature: modelIs38 ? 0.7 : 1,
-              response_modalities: ["AUDIO"],
-              speech_config: speechConfig,
-            },
-          };
+              }
+            : {
+                contents: [
+                  {
+                    role: "user",
+                    parts: [{ text: modelText }],
+                  },
+                ],
+                safety_settings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+                ],
+                generation_config: {
+                  temperature: 1,
+                  response_modalities: ["AUDIO"],
+                  speech_config: speechConfigSnake,
+                },
+              };
 
           const restRes = await fetch(restUrl, {
             method: "POST",
@@ -923,9 +961,19 @@ export default function App() {
 
         {/* Section 5: Director Notes */}
         <section className="space-y-3 pt-4 border-t border-border-custom">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
-            <Sparkles className="w-4 h-4" />
-            <span>Director's Notes (Style Prompt)</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
+              <Sparkles className="w-4 h-4" />
+              <span>Director's Notes (Style Prompt)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStylePrompt("Deep gravelly resonant baritone voice, extremely slow and deliberate speaking pace, long dramatic pauses, cinematic bedtime storyteller, weathered and heavy, unhurried, rich and atmospheric.")}
+              className="text-[11px] text-ash hover:text-ember underline cursor-pointer transition-colors"
+              title="Reset to the calibrated Algieba cinematic baritone style"
+            >
+              Reset to Tuned Baritone
+            </button>
           </div>
           <textarea
             className="w-full min-h-[90px] bg-surface-2 border border-border-custom rounded-lg p-3 text-xs text-parchment leading-relaxed placeholder-ash/50 outline-none transition-colors focus:border-ember"
