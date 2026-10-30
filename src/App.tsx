@@ -552,12 +552,7 @@ export default function App() {
         bytes[i] = raw.charCodeAt(i);
       }
 
-      if (mimeType.includes("wav") || mimeType.includes("wave")) {
-        // Strip 44-byte header to get raw PCM for stitching
-        return bytes.buffer.slice(44);
-      } else {
-        return bytes.buffer;
-      }
+      return extractPcmFromAudio(bytes);
     } catch (err: any) {
       const isQuota =
         err?.message?.includes("quota") ||
@@ -577,11 +572,79 @@ export default function App() {
     }
   }
 
+  // Extracts pure 16-bit PCM audio from a WAV/RIFF container or raw PCM buffer,
+  // strictly discarding any trailing metadata chunks (e.g. Google's 7.6KB C2PA Content Credentials chunk).
+  function extractPcmFromAudio(bytes: Uint8Array): ArrayBuffer {
+    if (
+      bytes.length >= 12 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && // 'RIFF'
+      bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45    // 'WAVE'
+    ) {
+      let offset = 12;
+      while (offset + 8 <= bytes.length) {
+        const chunkId = String.fromCharCode(
+          bytes[offset],
+          bytes[offset + 1],
+          bytes[offset + 2],
+          bytes[offset + 3]
+        );
+        const chunkSize =
+          (bytes[offset + 4]) |
+          (bytes[offset + 5] << 8) |
+          (bytes[offset + 6] << 16) |
+          (bytes[offset + 7] << 24);
+
+        if (chunkId === "data") {
+          const dataStart = offset + 8;
+          const dataEnd = Math.min(dataStart + chunkSize, bytes.length);
+          const pcmSlice = bytes.subarray(dataStart, dataEnd);
+          return pcmSlice.buffer.slice(
+            pcmSlice.byteOffset,
+            pcmSlice.byteOffset + pcmSlice.byteLength
+          );
+        }
+
+        offset += 8 + chunkSize;
+        if (chunkSize % 2 !== 0) {
+          offset++;
+        }
+      }
+
+      const fallbackSlice = bytes.subarray(44);
+      return fallbackSlice.buffer.slice(
+        fallbackSlice.byteOffset,
+        fallbackSlice.byteOffset + fallbackSlice.byteLength
+      );
+    }
+
+    return bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    );
+  }
+
   // Stitches PCM Buffers into a single continuous mono 16-bit 24kHz WAV stream
   function pcmBuffersToWav(buffers: ArrayBuffer[], sampleRate: number): ArrayBuffer {
+    const fadeSamples = 120; // 5ms micro-fade at 24kHz to eliminate zero-crossing clicks
+
+    const processedArrays = buffers.map((buf) => {
+      const arr = new Int16Array(buf.slice(0)); // clone buffer
+      if (arr.length > fadeSamples * 2) {
+        // Micro fade-in
+        for (let i = 0; i < fadeSamples; i++) {
+          arr[i] = Math.round(arr[i] * (i / fadeSamples));
+        }
+        // Micro fade-out
+        for (let i = 0; i < fadeSamples; i++) {
+          const idx = arr.length - 1 - i;
+          arr[idx] = Math.round(arr[idx] * (i / fadeSamples));
+        }
+      }
+      return arr;
+    });
+
     let totalLength = 0;
-    const arrays = buffers.map((buf) => new Int16Array(buf));
-    arrays.forEach((a) => (totalLength += a.length));
+    processedArrays.forEach((a) => (totalLength += a.length));
 
     const wavBuffer = new ArrayBuffer(44 + totalLength * 2);
     const view = new DataView(wavBuffer);
@@ -611,7 +674,7 @@ export default function App() {
     view.setUint32(40, totalLength * 2, true);
 
     let offset = 44;
-    for (const arr of arrays) {
+    for (const arr of processedArrays) {
       for (let i = 0; i < arr.length; i++) {
         view.setInt16(offset, arr[i], true);
         offset += 2;
