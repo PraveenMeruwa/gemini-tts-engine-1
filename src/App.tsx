@@ -46,24 +46,24 @@ interface PacingOption {
 const PACING_OPTIONS: PacingOption[] = [
   {
     id: "classic",
-    label: "Classic Storyteller (Slow & Deliberate — Default)",
+    label: "Classic Storyteller (Slow & Deliberate - Default)",
     badge: "Classic Storyteller Calibrated",
     stylePrompt:
-      "Deep gravelly resonant baritone voice, slow and deliberate speaking pace, long dramatic pauses, cinematic bedtime storyteller, weathered and heavy, unhurried, rich and atmospheric. Wise elder narrator with calm, steady delivery and warm chest resonance.",
+      "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Slow, lazy, deliberate pace with long pauses between thoughts. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction and a touch of natural brightness on the consonants. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Hypnotic bedtime storyteller delivery.",
   },
   {
     id: "hypnotic",
-    label: "Hypnotic Bedtime (Deep Pauses & Lingering)",
-    badge: "Hypnotic Bedtime Calibrated",
+    label: "Hypnotic (very slow)",
+    badge: "Hypnotic (very slow) Calibrated",
     stylePrompt:
-      "A deep, low, gravelly male voice in his late 60s, with heavy chest resonance and a rich, warm bass. Weathered wise elder storyteller. Extremely slow, hypnotic bedtime cadence with deep, lingering pauses between thoughts. Soft, intimate, and comforting, never rushed. Hypnotic bedtime storyteller delivery.",
+      "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and gentle, never frail or shaky. Extremely slow, drowsy, deliberate pace, with long, lingering pauses between thoughts and a soft, trailing settle at the end of every sentence. A slight rasp, calm and steady, never aggressive, with an even, low pitch that never rises or peaks. Smooth and soft-edged with gentle consonants and no sharp brightness. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Whispery-calm, hypnotic, sleep-inducing bedtime delivery.",
   },
   {
     id: "calm",
-    label: "Calm Narrative (Steady & Flowing)",
-    badge: "Calm Narrative Calibrated",
+    label: "Calm Narrative (Normal Pace)",
+    badge: "Calm Narrative (Normal Pace) Calibrated",
     stylePrompt:
-      "Rich, resonant male baritone voice with warm chest resonance. Thoughtful, steady, and articulate narrative pace with natural pauses. Calm, measured, and engaging storytelling delivery.",
+      "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Gentle, flowing, natural audiobook pace with short, easy pauses between sentences, unhurried but moving steadily forward. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Warm, engaging, thoughtful storyteller delivery.",
   },
 ];
 
@@ -244,15 +244,10 @@ export default function App() {
           // ─── Build the text content for this specific model ─────────────
           let modelText: string;
           if (modelIs38) {
-            if (pacingPreset === "hypnotic") {
-              const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-              modelText = "## Transcript:\n" + parts.map((p) => `[slow] ${convertInlineTags(p.trim())}`).join("\n\n[long pause]\n\n");
-            } else if (pacingPreset === "classic") {
-              const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-              modelText = "## Transcript:\n" + parts.map((p) => `[slow] ${convertInlineTags(p.trim())}`).join("\n\n");
-            } else {
-              modelText = "## Transcript:\n" + convertInlineTags(text);
-            }
+            const converted = convertInlineTags(text);
+            modelText = converted.startsWith("## Transcript:")
+              ? converted
+              : `## Transcript:\n${converted}`;
           } else {
             modelText = stylePromptText ? `${stylePromptText}\n\n${text}` : text;
           }
