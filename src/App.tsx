@@ -14,7 +14,8 @@ import {
   Info,
   Key,
   Check,
-  X
+  X,
+  Lock
 } from "lucide-react";
 import { ChunkLogItem } from "./types";
 
@@ -49,7 +50,7 @@ export default function App() {
   const [stylePrompt, setStylePrompt] = useState(
     "A deep, low, gravelly male voice in his late 60s to early 70s, with heavy chest resonance and a rich, warm, vibrating bass. The seasoned, weathered voice of a wise elder storyteller, full-bodied and authoritative but gentle, never frail or shaky. Slow, lazy, deliberate pace with long pauses between thoughts. A slight rasp, calm and steady, never aggressive, with an even pitch that never rises or peaks. Clear, present upper-mids with crisp, articulate diction and a touch of natural brightness on the consonants. Recorded close to the microphone, warm and intimate. Neutral General American accent, standard Hollywood-style, with no southern or regional inflection. Hypnotic bedtime storyteller delivery."
   );
-  const [chunkSize, setChunkSize] = useState<number>(200);
+  const [chunkSize, setChunkSize] = useState<number>(500);
   const [selectedEngine, setSelectedEngine] = useState<string>(
     TTS_ENGINES.find((e) => e.default)?.id || TTS_ENGINES[0].id
   );
@@ -304,7 +305,7 @@ export default function App() {
                   },
                 ],
                 generationConfig: {
-                  temperature: 0.5,
+                  temperature: 0.3,
                   responseModalities: ["AUDIO"],
                   speechConfig: speechConfigCamel,
                 },
@@ -978,13 +979,13 @@ export default function App() {
               disabled={isGenerating}
             >
               <option value={150}>150 words — ultra reliable</option>
-              <option value={200}>200 words — recommended</option>
+              <option value={200}>200 words — compact</option>
               <option value={250}>250 words — balanced</option>
               <option value={300}>300 words — extended (3.8+)</option>
               <option value={350}>350 words — extended (3.8+)</option>
               <option value={400}>400 words — large (3.8+)</option>
               <option value={450}>450 words — large (3.8+)</option>
-              <option value={500}>500 words — maximum (3.8+)</option>
+              <option value={500}>500 words — default (recommended for 3.8+)</option>
             </select>
           </div>
 
@@ -1015,16 +1016,22 @@ export default function App() {
 
         {/* Section 5: Director Notes */}
         <section className="space-y-3 pt-4 border-t border-border-custom">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
-            <Sparkles className="w-4 h-4" />
-            <span>Director's Notes (Style Prompt)</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-ember font-semibold">
+              <Sparkles className="w-4 h-4" />
+              <span>Director's Notes (Style Prompt)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-ash bg-surface-2 px-2.5 py-1 rounded-md border border-border-custom select-none">
+              <Lock className="w-3 h-3 text-ember" />
+              <span>Locked · Sleepy Joe 3.8 V1 Calibrated</span>
+            </div>
           </div>
           <textarea
-            className="w-full min-h-[90px] bg-surface-2 border border-border-custom rounded-lg p-3 text-xs text-parchment leading-relaxed placeholder-ash/50 outline-none transition-colors focus:border-ember"
-            placeholder="Optional styling instructions - mood, pacing, delivery character..."
+            className="w-full min-h-[95px] bg-surface-2/60 border border-border-custom rounded-lg p-3 text-xs text-parchment/80 leading-relaxed outline-none cursor-not-allowed resize-none select-none opacity-80"
             value={stylePrompt}
-            onChange={(e) => setStylePrompt(e.target.value)}
-            disabled={isGenerating}
+            readOnly
+            disabled
+            title="Director's Notes are permanently locked to preserve the calibrated Sleepy Joe 3.8 V1 vocal timbre and pacing across all script generations."
           />
         </section>
 
