@@ -83,7 +83,7 @@ export default function App() {
   const [scriptText, setScriptText] = useState("");
   const [pacingPreset, setPacingPreset] = useState<PacingPresetId>("hypnotic");
   const activePacingOption = PACING_OPTIONS.find((p) => p.id === pacingPreset) || PACING_OPTIONS[0];
-  const [chunkSize, setChunkSize] = useState<number>(500);
+  const [chunkSize, setChunkSize] = useState<number>(400);
   const [selectedEngine, setSelectedEngine] = useState<string>(
     TTS_ENGINES.find((e) => e.default)?.id || TTS_ENGINES[0].id
   );
@@ -1074,9 +1074,9 @@ export default function App() {
               <option value={250}>250 words — balanced</option>
               <option value={300}>300 words — extended (3.8+)</option>
               <option value={350}>350 words — extended (3.8+)</option>
-              <option value={400}>400 words — large (3.8+)</option>
+              <option value={400}>400 words — default (recommended for 3.8+)</option>
               <option value={450}>450 words — large (3.8+)</option>
-              <option value={500}>500 words — default (recommended for 3.8+)</option>
+              <option value={500}>500 words — maximum (3.8+)</option>
             </select>
           </div>
 
